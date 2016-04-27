@@ -1,0 +1,11 @@
+[package]
+name = "xi_glium"
+version = "0.0.0"
+authors = ["Pavel Potocek <pavelpotocek@gmail.com>"]
+
+[dependencies]
+serde_json = "*"
+glium = "0.14"
+
+[dependencies.glium_text]
+path = "glium_text"

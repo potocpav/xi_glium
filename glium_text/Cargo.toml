@@ -1,0 +1,22 @@
+[package]
+name = "glium_text"
+version = "0.8.0"
+authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>"]
+description = "Text drawing with glium and freetype"
+keywords = ["text", "opengl"]
+license = "MIT"
+
+[dependencies]
+freetype-sys = "0.3"
+libc = "0.2"
+
+[dependencies.glium]
+version = "0.14"
+default-features = false
+
+[dev-dependencies]
+cgmath = "0.8"
+
+[dev-dependencies.glium]
+version = "0.14"
+features = ["glutin"]
