@@ -4,6 +4,7 @@
 [**xi editor**](https://github.com/google/xi-editor) project back-end.
 
 Screenshot:
+
 ![xi glium](/screenshot.png?raw=true)
 
 ## Features
