@@ -10,7 +10,7 @@ Screenshot:
 
 * Write and backspace text
 * Navigate using arrows, page-up and page-down
-* Load (`ctrl-o`) and save (`ctrl-s`) to a file specified as an argument
+* Load (`ctrl-o`), save (`ctrl-s`) and save-as (`ctrl-shift-s`) using GTK dialogs
 * F1 to line-wrap
 * Graceful window resizing
 
