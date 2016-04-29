@@ -10,11 +10,13 @@ Screenshot:
 
 * Write and backspace text
 * Load (`ctrl-o`) and save (`ctrl-s`) to a file specified as an argument
-* Navigate using arrows
+* Navigate using arrows, page-up and page-down
+* Graceful window resizing
 
 You must specify a path to the `xicore` executable (build by cargo inside
-the `rust` subdirectory of xi-editor). Works with the xi-editor commit f2a567b.
+the `rust` subdirectory of xi-editor). Works with the xi-editor commit 693b121,
+but the HEAD is a good bet.
 
 ## Example usage
 
-`xicore=../rust/target/debug/xicore cargo run README.md`
+`xicore=../xi-editor/rust/target/debug/xicore cargo run README.md`

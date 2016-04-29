@@ -14,8 +14,6 @@ macro_rules! println_err (
 );
 
 pub struct Core {
-    _stdout_handle: thread::JoinHandle<()>,
-    _stderr_handle: thread::JoinHandle<()>,
     stdin: ChildStdin,
     pub rx: mpsc::Receiver<Value>,
 }
@@ -35,7 +33,7 @@ impl Core {
 
         let (tx, rx) = mpsc::channel();
         let mut stdout = process.stdout.unwrap();
-        let _stdout_handle = thread::spawn(move || {
+        thread::spawn(move || {
             let mut size_buf = [0u8; 8];
             while stdout.read_exact(&mut size_buf).is_ok() {
                 let size = decode_u64(&size_buf) as usize;
@@ -51,7 +49,7 @@ impl Core {
         });
 
         let stderr = process.stderr.unwrap();
-        let _stderr_handle = thread::spawn(move || {
+        thread::spawn(move || {
             let buf_reader = BufReader::new(stderr);
             for line in buf_reader.lines() {
                 if let Ok(line) = line {
@@ -60,58 +58,56 @@ impl Core {
             }
         });
 
-
         let stdin = process.stdin.unwrap();
-        // stdin_handle.write("[\"open\", \"test-file\"]\n".as_bytes());
 
-        Core { _stdout_handle: _stdout_handle, _stderr_handle: _stderr_handle, stdin: stdin, rx: rx }
-        // unimplemented!()
+        Core { stdin: stdin, rx: rx }
     }
-
-    // // TODO: delete. just an infinite wait
-    // pub fn join(self) {
-    //     self._stdout_handle.join().unwrap();
-    // }
-    //
 
     pub fn save(&mut self, filename: &str) {
         self.write(format!("[\"save\", \"{}\"]", filename).as_bytes()).unwrap();
     }
 
-    // TODO: construct safely!!
+
+    // TODO: construct the JSON safely!!
     pub fn open(&mut self, filename: &str) {
         self.write(format!("[\"open\", \"{}\"]", filename).as_bytes()).unwrap();
     }
 
-    pub fn left(&mut self) {
-        self.write("[\"key\", { \"chars\": \"\u{F702}\", \"flags\": 0}]".as_bytes()).unwrap();
+    fn send_char(&mut self, c: char) {
+        self.write(format!(r#"["key", {{ "chars": "{}", "flags": 0}}]"#, c).as_bytes()).unwrap();
     }
 
-    pub fn right(&mut self) {
-        self.write("[\"key\", { \"chars\": \"\u{F703}\", \"flags\": 0}]".as_bytes()).unwrap();
+    pub fn left(&mut self) { self.send_char('\u{F702}'); }
+
+    pub fn right(&mut self) { self.send_char('\u{F703}'); }
+
+    pub fn up(&mut self) { self.send_char('\u{F700}'); }
+
+    pub fn down(&mut self) { self.send_char('\u{F701}'); }
+
+    pub fn del(&mut self) { self.send_char('\x7f'); }
+
+    pub fn page_up(&mut self) { self.send_char('\u{F72C}'); }
+
+    pub fn page_down(&mut self) { self.send_char('\u{F72D}'); }
+
+    pub fn f1(&mut self) { self.send_char('\u{F704}'); }
+
+    pub fn f2(&mut self) { self.send_char('\u{F705}'); }
+
+    pub fn char(&mut self, ch: char) { self.send_char(ch); }
+
+    pub fn scroll(&mut self, start: u64, end: u64) {
+        // println!("test");
+        // self.send_char('\u{F703}\", \"flags\": 0}]".as_bytes());
+        self.write(format!(r#"["scroll", [{}, {}]]"#, start, end).as_bytes()).unwrap();
     }
 
-    pub fn up(&mut self) {
-        self.write("[\"key\", { \"chars\": \"\u{F700}\", \"flags\": 0}]".as_bytes()).unwrap();
+    pub fn test(&mut self) {
+        // println!("test");
+        // self.send_char('\u{F703}\", \"flags\": 0}]".as_bytes());
+        self.write(r#"["scroll", [5, 20]]"#.as_bytes()).unwrap();
     }
-
-    pub fn down(&mut self) {
-        self.write("[\"key\", { \"chars\": \"\u{F701}\", \"flags\": 0}]".as_bytes()).unwrap();
-    }
-
-    pub fn del(&mut self) {
-        self.write("[\"key\", { \"chars\": \"\x7f\", \"flags\": 0}]".as_bytes()).unwrap();
-    }
-
-    pub fn char(&mut self, ch: char) {
-        self.write(format!("[\"key\", {{ \"chars\": \"{}\", \"flags\": 0}}]", ch).as_bytes()).unwrap();
-    }
-
-    // pub fn test(&mut self) {
-    //     println!("test");
-    //     self.write("[\"key\", { \"chars\": \"\u{F703}\", \"flags\": 0}]".as_bytes());
-    //     self.write(r#"["scroll", ["0", "10"]]"#.as_bytes());
-    // }
     //
     // pub fn render_lines(&mut self) {
     //     println!("render_lines");

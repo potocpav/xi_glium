@@ -2,9 +2,11 @@
 name = "xi_glium"
 version = "0.0.0"
 authors = ["Pavel Potocek <pavelpotocek@gmail.com>"]
+license = "MIT"
 
 [dependencies]
 serde_json = "*"
+# gtk = "*"
 glium = "0.14"
 
 [dependencies.glium_text]
