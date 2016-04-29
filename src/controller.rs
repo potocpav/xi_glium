@@ -5,10 +5,10 @@ use std::thread;
 use glium::backend::glutin_backend::GlutinFacade;
 use serde_json::Value;
 
-
 use core::Core;
 use renderer::Renderer;
 use line::Line;
+use file_dialog;
 
 // pub struct Controller {
 //     core: Core,
@@ -19,7 +19,7 @@ use line::Line;
 // }
 
 pub struct State {
-    pub filename: String,
+    pub filename: Option<String>,
     pub text: Vec<Line>,
     pub first_line: u64,
     pub line_count: u64,
@@ -27,7 +27,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(filename: String) -> State {
+    pub fn new(filename: Option<String>) -> State {
         State {
             filename: filename,
             text: vec![],
@@ -78,9 +78,12 @@ impl State {
     }
 }
 
-pub fn run(core_path: &str, filename: String, display: GlutinFacade) {
+pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     let mut core = Core::new(&core_path);
-    core.open(&filename);
+
+    if let Some(ref filename) = filename {
+        core.open(filename);
+    }
 
     let mut state = State::new(filename);
 
@@ -89,30 +92,35 @@ pub fn run(core_path: &str, filename: String, display: GlutinFacade) {
     let mut lines_y: Option<Vec<i32>> = None;
 
     // the main loop
-    let mut ctrl = false;
+    let (mut ctrl, mut shift) = (false, false);
+    use std::sync::mpsc;
+    let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
     'a: loop {
-        if let Some(ref lines_y) = lines_y {
-            renderer.draw(&display, &state, lines_y);
-        }
-
-        while let Ok(value) = core.rx.try_recv() {
-            state.update(value);
-        }
-
         // polling and handling the events received by the window
         for event in display.poll_events() {
             use glium::glutin::*;
             match event {
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::O)) => {
-                    if ctrl {
-                        println!("Opening a file..");
-                        // dialog.spawn();
-                        core.open(&state.filename);
+                    if ctrl && file_open_rx.is_none() {
+                        file_open_rx = Some(file_dialog::open());
+                        ctrl = false; // ctrl is typically released over the dialog
                     }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
                     if ctrl {
                         println!("Saving a file..");
-                        core.save(&state.filename);
+
+                        if let Some(ref filename) = state.filename {
+                            core.save(filename);
+                        } else {
+                            file_save_rx = Some(file_dialog::save());
+                            ctrl = false;
+                        }
+
+                        if shift {
+                            file_save_rx = Some(file_dialog::save());
+                            ctrl = false;
+                            shift = false;
+                        }
                     }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::T)) => {
                     if ctrl {
@@ -142,6 +150,10 @@ pub fn run(core_path: &str, filename: String, display: GlutinFacade) {
                  | Event::KeyboardInput(state, _, Some(VirtualKeyCode::RControl)) => {
                     ctrl = state == ElementState::Pressed;
                     println!("ctrl: {}", ctrl);
+                }, Event::KeyboardInput(state, _, Some(VirtualKeyCode::LShift))
+                 | Event::KeyboardInput(state, _, Some(VirtualKeyCode::RShift)) => {
+                    shift = state == ElementState::Pressed;
+                    println!("shift: {}", shift);
 
                 }, Event::ReceivedCharacter(ch) => {
                     if ch == '\x08' || ch == '\x7f' || ctrl {
@@ -157,6 +169,40 @@ pub fn run(core_path: &str, filename: String, display: GlutinFacade) {
                 }, Event::Closed => break 'a,
                 _ => ()
             }
+        }
+
+        if let Some(rx) = file_open_rx.take() {
+            match rx.try_recv() {
+                Ok(Some(filename)) => {
+                    // TODO: replace String by Path or OsString
+                    core.open(filename.to_str().unwrap());
+                    state.filename = Some(filename.to_str().unwrap().into());
+                    file_open_rx = None;
+                }, _ => {
+                    file_open_rx = Some(rx);
+                }
+            }
+        }
+
+        if let Some(rx) = file_save_rx.take() {
+            match rx.try_recv() {
+                Ok(Some(filename)) => {
+                    // TODO: replace String by Path or OsString
+                    core.save(filename.to_str().unwrap());
+                    state.filename = Some(filename.to_str().unwrap().into());
+                    file_save_rx = None;
+                }, _ => {
+                    file_save_rx = Some(rx);
+                }
+            }
+        }
+
+        while let Ok(value) = core.rx.try_recv() {
+            state.update(value);
+        }
+
+        if let Some(ref lines_y) = lines_y {
+            renderer.draw(&display, &state, lines_y);
         }
 
         thread::sleep(Duration::from_millis(15));

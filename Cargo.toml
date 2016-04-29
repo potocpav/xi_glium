@@ -6,7 +6,8 @@ license = "MIT"
 
 [dependencies]
 serde_json = "*"
-# gtk = "*"
+gtk = "*"
+glib = "*"
 glium = "0.14"
 
 [dependencies.glium_text]

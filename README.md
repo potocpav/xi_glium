@@ -9,8 +9,9 @@ Screenshot:
 ## Features
 
 * Write and backspace text
-* Load (`ctrl-o`) and save (`ctrl-s`) to a file specified as an argument
 * Navigate using arrows, page-up and page-down
+* Load (`ctrl-o`) and save (`ctrl-s`) to a file specified as an argument
+* F1 to line-wrap
 * Graceful window resizing
 
 You must specify a path to the `xicore` executable (build by cargo inside
