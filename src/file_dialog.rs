@@ -1,6 +1,6 @@
 
 use std::sync::mpsc;
-use std::{thread,path};
+use std::path;
 use gtk;
 use gtk::prelude::*;
 use glib;

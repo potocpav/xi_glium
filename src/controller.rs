@@ -93,7 +93,6 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
 
     // the main loop
     let (mut ctrl, mut shift) = (false, false);
-    use std::sync::mpsc;
     let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
     'a: loop {
         // polling and handling the events received by the window

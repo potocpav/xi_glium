@@ -15,6 +15,9 @@ pub struct Renderer {
     program: glium::Program,
     text_system: glium_text::TextSystem,
     font_texture: glium_text::FontTexture,
+
+    cursor: Primitive,
+    line_bg: Primitive,
 }
 
 impl Renderer {
@@ -33,10 +36,11 @@ impl Renderer {
                 out vec4 v_color;
 
                 uniform vec2 win_size;
+                uniform vec2 offset;
 
                 void main() {
                     v_color = color;
-                    gl_Position = vec4(position / win_size * 2. - 1., 0.0, 1.0);
+                    gl_Position = vec4((position + offset) / win_size * 2. - 1., 0.0, 1.0);
                 }
             "#;
             let fs_src = r#"
@@ -52,10 +56,15 @@ impl Renderer {
             glium::Program::from_source(display, vs_src, fs_src, None).unwrap()
         };
 
+        let cursor = Primitive::new_line(display, (0.,-10.), (0.,10.), [0.,0.,0.,1.]);
+        let line_bg = Primitive::new_rect(display, (0., -10.), (2000., 10.), [1.,1.,0.7,1.]);
+
         Renderer {
             program: program,
             text_system: text_system,
             font_texture: font_texture,
+            cursor: cursor,
+            line_bg: line_bg,
         }
     }
 
@@ -66,8 +75,8 @@ impl Renderer {
 
         let frame = Primitive::new_rect(display, (0., h as f32), (w as f32, 0.), [0.8, 0.8, 0.8, 1.0]);
         let bg = Primitive::new_rect(display, (15., h as f32 - 15.), (w as f32 - 15., 15.), [1.0, 1.0, 1.0, 1.0]);
-        frame.draw(&mut target, &self, true);
-        bg.draw(&mut target, &self, true);
+        // frame.draw(&mut target, &self.program, (0.,0.));
+        // bg.draw(&mut target, &self.program, (0.,0.));
 
         self.draw_text(&mut target, state, lines_y).unwrap();
 
@@ -108,18 +117,19 @@ impl Renderer {
 
         let text = glium_text::TextDisplay::new(&self.text_system, &self.font_texture, &line.text);
 
-        glium_text::draw(&text, &self.text_system, target, text_tf(px, py), (0., 0., 0., 1.));
-
         if let Some(mut pos) = line.cursor {
-            let cursor = glium_text::TextDisplay::new(&self.text_system, &self.font_texture, "|");
             if pos >= text.get_char_pos_x().len() as u64 {
                 pos = (text.get_char_pos_x().len() - 1) as u64;
             }
-            let offset_local = text.get_char_pos_x()[pos as usize] - cursor.get_char_pos_x()[1] / 2.;
+            let offset_local = text.get_char_pos_x()[pos as usize];
             let offset_screen = offset_local * size as f32;
 
-            glium_text::draw(&cursor, &self.text_system, target, text_tf(px + offset_screen, py), (0., 0., 1., 1.));
+            self.line_bg.draw(target, &self.program, (px, py)).unwrap();
+            self.cursor.draw(target, &self.program, (offset_screen + px, py)).unwrap();
         }
+
+        glium_text::draw(&text, &self.text_system, target, text_tf(px, py), (0., 0., 0., 1.));
+
         Ok(())
     }
 }
@@ -134,13 +144,15 @@ implement_vertex!(Vertex, position, color);
 pub struct Primitive {
     vertex_buffer: glium::VertexBuffer<Vertex>,
     index_buffer:  glium::index::NoIndices,
+    fill: bool,
 }
 
 impl Primitive {
-    pub fn new(display: &glium::Display, verts: &[Vertex], primitive_type: glium::index::PrimitiveType) -> Self {
+    pub fn new(display: &glium::Display, verts: &[Vertex], primitive_type: glium::index::PrimitiveType, fill: bool) -> Self {
         Primitive {
             vertex_buffer: glium::VertexBuffer::new(display, verts).unwrap(),
             index_buffer: glium::index::NoIndices(primitive_type),
+            fill: fill,
         }
     }
 
@@ -154,6 +166,19 @@ impl Primitive {
         Primitive {
             vertex_buffer: glium::VertexBuffer::new(display, &verts).unwrap(),
             index_buffer:  glium::index::NoIndices(PrimitiveType::TriangleStrip),
+            fill: true,
+        }
+    }
+
+    pub fn new_line(display: &glium::Display, p1: (f32,f32), p2: (f32,f32), color: [f32; 4]) -> Self {
+        let verts = vec![
+            Vertex { position: [p1.0, p1.1], color: color },
+            Vertex { position: [p2.0, p2.1], color: color },
+        ];
+        Primitive {
+            vertex_buffer: glium::VertexBuffer::new(display, &verts).unwrap(),
+            index_buffer:  glium::index::NoIndices(PrimitiveType::LinesList),
+            fill: false,
         }
     }
 
@@ -177,13 +202,13 @@ impl Primitive {
     //     }
     // }
 
-    pub fn draw(&self, target: &mut glium::Frame, renderer: &Renderer, fill: bool) -> Result<(), glium::DrawError> {
+    pub fn draw(&self, target: &mut glium::Frame, program: &glium::Program, offset: (f32, f32)) -> Result<(), glium::DrawError> {
         let (w, h) = target.get_dimensions();
         let params = glium::DrawParameters {
-            polygon_mode: if fill { glium::draw_parameters::PolygonMode::Fill } else { glium::draw_parameters::PolygonMode::Line },
+            polygon_mode: if self.fill { glium::draw_parameters::PolygonMode::Fill } else { glium::draw_parameters::PolygonMode::Line },
             blend: glium::draw_parameters::Blend::alpha_blending(),
             ..Default::default()
         };
-        target.draw(&self.vertex_buffer, &self.index_buffer, &renderer.program, &uniform!{ win_size: (w as f32, h as f32) }, &params)
+        target.draw(&self.vertex_buffer, &self.index_buffer, program, &uniform!{ win_size: (w as f32, h as f32), offset: offset }, &params)
     }
 }
