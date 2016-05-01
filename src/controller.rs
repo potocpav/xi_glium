@@ -180,11 +180,13 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
             state.update(value);
         }
 
-        // let mut target = renderer.draw();
-        renderer.draw(&display, state.text.get_lines());
+        let mut target = renderer.draw(&display);
 
+        state.text.render(&mut target).unwrap();
 
-        // target.finish();
+        // renderer.draw(&display, state.text.get_lines());
+
+        target.finish();
 
         thread::sleep(Duration::from_millis(15));
     }

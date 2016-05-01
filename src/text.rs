@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use serde_json::Value;
+use glium::DrawError;
 
-// use renderer::Renderer;
+use renderer::*;
 
 const LINE_HEIGHT: f32 = 20.;
 
@@ -32,10 +33,12 @@ impl Text {
         self.n_lines = n_lines;
     }
 
-    // pub fn render(&self, renderer: &mut Renderer) {
-    //     unimplemented!()
-    //     // TODO: move the rendering logic into this module
-    // }
+    pub fn render(&self, target: &mut Target) -> Result<(),DrawError> {
+        for (y, line) in self.get_lines() {
+            try!(target.draw_line(&line, (15., y), 0));
+        }
+        Ok(())
+    }
 
     pub fn add_lines(&mut self, value: &Value, first: u64) {
         for (i, line) in value.as_array().unwrap().into_iter().enumerate() {

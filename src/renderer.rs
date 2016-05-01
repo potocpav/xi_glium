@@ -10,6 +10,53 @@ use glium::index::PrimitiveType;
 use text::Line;
 use controller::State;
 
+pub struct Target<'a> {
+    target: glium::Frame,
+    renderer: &'a Renderer,
+}
+
+impl<'a> Target<'a> {
+
+    pub fn draw_line(&mut self, line: &Line, (px, py): (f32, f32), line_nr: u64)
+            -> Result<(), glium::DrawError> {
+        let (renderer, target) = (&self.renderer, &mut self.target);
+        let size = self.renderer.font_texture.em_pixels();
+        let (w, h) = target.get_dimensions();
+        let text_tf = |px: f32, py: f32| -> [[f32; 4]; 4] {
+            let (x, y) = (px / w as f32 * 2. - 1.,
+                         (py - size as f32 / 2.) / h as f32 * 2. - 1.);
+
+            let scale = 2. * size as f32;
+
+            [[scale / w as f32, 0.0, 0.0, 0.0],
+             [0.0, scale / h as f32, 0.0, 0.0],
+             [0.0,              0.0, 1.0, 0.0],
+             [  x,                y, 0.0, 1.0]]
+        };
+
+        let text = glium_text::TextDisplay::new(&renderer.text_system, &renderer.font_texture, &line.text);
+
+        if let Some(mut pos) = line.cursor {
+            if pos >= text.get_char_pos_x().len() as u64 {
+                pos = (text.get_char_pos_x().len() - 1) as u64;
+            }
+            let offset_local = text.get_char_pos_x()[pos as usize];
+            let offset_screen = offset_local * size as f32;
+
+            renderer.line_bg.draw(target, &renderer.program, (px, py)).unwrap();
+            renderer.cursor.draw(target, &renderer.program, (offset_screen + px, py)).unwrap();
+        }
+
+        glium_text::draw(&text, &renderer.text_system, target, text_tf(px, py), (0., 0., 0., 1.));
+
+        Ok(())
+    }
+
+    pub fn finish(self) {
+        self.target.finish().unwrap();
+    }
+}
+
 pub struct Renderer {
     program: glium::Program,
     text_system: glium_text::TextSystem,
@@ -88,67 +135,13 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&self, display: &glium::backend::glutin_backend::GlutinFacade, lines: Vec<(f32, Line)>) {
+    pub fn draw(&self, display: &glium::backend::glutin_backend::GlutinFacade) -> Target {
         let mut target = display.draw();
         target.clear_color(1.0, 1.0, 1.0, 0.0);
-        let (w, h) = target.get_dimensions();
-
-        let frame = Primitive::new_rect(display, (0., h as f32), (w as f32, 0.), [0.8, 0.8, 0.8, 1.0]);
-        let bg = Primitive::new_rect(display, (15., h as f32 - 15.), (w as f32 - 15., 15.), [1.0, 1.0, 1.0, 1.0]);
-        // frame.draw(&mut target, &self.program, (0.,0.));
-        // bg.draw(&mut target, &self.program, (0.,0.));
-
-        self.draw_text(&mut target, lines).unwrap();
-
-        target.finish().unwrap();
-    }
-
-    fn draw_minimap(&self) -> Result<(), glium::DrawError> {
-        unimplemented!()
-    }
-
-    fn draw_text(&self, target: &mut glium::Frame, lines: Vec<(f32, Line)>) // state: &State, lines_y: &[i32])
-            -> Result<(), glium::DrawError> {
-        for (y, line) in lines {
-            try!(self.draw_line(target, &line, (15., y), 0));
-        }
-        Ok(())
-    }
-
-    pub fn draw_line(&self, target: &mut glium::Frame, line: &Line, (px, py): (f32, f32), line_nr: u64)
-            -> Result<(), glium::DrawError> {
-        let size = self.font_texture.em_pixels();
-        let (w, h) = target.get_dimensions();
-        let text_tf = |px: f32, py: f32| -> [[f32; 4]; 4] {
-            let (x, y) = (px / w as f32 * 2. - 1.,
-                         (py - size as f32 / 2.) / h as f32 * 2. - 1.);
-
-            let scale = 2. * size as f32;
-
-            [[scale / w as f32, 0.0, 0.0, 0.0],
-             [0.0, scale / h as f32, 0.0, 0.0],
-             [0.0,              0.0, 1.0, 0.0],
-             [  x,                y, 0.0, 1.0]]
-        };
-
-        let text = glium_text::TextDisplay::new(&self.text_system, &self.font_texture, &line.text);
-
-        if let Some(mut pos) = line.cursor {
-            if pos >= text.get_char_pos_x().len() as u64 {
-                pos = (text.get_char_pos_x().len() - 1) as u64;
-            }
-            let offset_local = text.get_char_pos_x()[pos as usize];
-            let offset_screen = offset_local * size as f32;
-
-            self.line_bg.draw(target, &self.program, (px, py)).unwrap();
-            self.cursor.draw(target, &self.program, (offset_screen + px, py)).unwrap();
-        }
-
-        glium_text::draw(&text, &self.text_system, target, text_tf(px, py), (0., 0., 0., 1.));
-
-        Ok(())
+        Target { target: target, renderer: &self }
     }
 }
+
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
