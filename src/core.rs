@@ -77,6 +77,11 @@ impl Core {
         self.write(format!(r#"["key", {{ "chars": "{}", "flags": 0}}]"#, c).as_bytes()).unwrap();
     }
 
+    pub fn click(&mut self, pos: (usize, usize)) {
+        let (line, column) = pos;
+        self.write(format!(r#"["click",[{},{},0,1]]"#, line, column).as_bytes()).unwrap();
+    }
+
     pub fn left(&mut self) { self.send_char('\u{F702}'); }
 
     pub fn right(&mut self) { self.send_char('\u{F703}'); }
