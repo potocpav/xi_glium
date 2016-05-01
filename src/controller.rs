@@ -26,6 +26,12 @@ pub struct State {
     pub scroll_to: (u64, u64),
 }
 
+#[derive(Debug)]
+pub struct MouseState {
+    pub last_x: i32,
+    pub last_y: i32
+}
+
 impl State {
     pub fn new(filename: Option<String>) -> State {
         State {
@@ -94,6 +100,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     // the main loop
     let (mut ctrl, mut shift) = (false, false);
     let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
+    let mut mouse_info = MouseState { last_x: 0, last_y: 0 };
     'a: loop {
         // polling and handling the events received by the window
         for event in display.poll_events() {
@@ -154,7 +161,30 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     shift = state == ElementState::Pressed;
                     println!("shift: {}", shift);
 
-                }, Event::ReceivedCharacter(ch) => {
+                },
+                Event::MouseMoved(mouse_x, mouse_y) => {
+                    mouse_info.last_x = mouse_x;
+                    mouse_info.last_y = mouse_y;
+                }
+                Event::MouseInput(button_state, button) => {
+                    if button_state != ElementState::Released || button != MouseButton::Left {
+                        continue;
+                    }
+                    match &lines_y {
+                        &Some(ref ly) => {
+                            match find_line(ly, mouse_info.last_y) {
+                                Some(line) => {
+                                    let pos = renderer.find_colum(&state, mouse_info.last_x, line);
+                                    core.click(pos);
+                                },
+                                _ => {}
+                            }
+                        },
+                        _ => {}
+                    }
+
+                },
+                Event::ReceivedCharacter(ch) => {
                     if ch == '\x08' || ch == '\x7f' || ctrl {
                         continue; // delete is not implemented, backspace is special-cased, ignore ctrl-ed characters.
                     }
@@ -206,6 +236,10 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
 
         thread::sleep(Duration::from_millis(15));
     }
+}
+
+fn find_line(lines: &Vec<i32>, pos: i32) -> Option<usize> {
+    lines.iter().rev().position(|&y| y >= pos)
 }
 
 fn get_lines_y(height: u32) -> Vec<i32> {

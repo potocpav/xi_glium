@@ -83,6 +83,25 @@ impl Renderer {
         target.finish().unwrap();
     }
 
+    pub fn find_colum(&self, state: &State, x: i32, line: usize) -> (usize, usize) {
+        let size = self.font_texture.em_pixels();
+        if line >= state.text.len() {
+            return (state.text.len() -1,  state.text[state.text.len() - 1].text.len() - 1);
+        }
+        let text_line = &state.text[line];
+        let text = glium_text::TextDisplay::new(&self.text_system, &self.font_texture, &text_line.text);
+
+        // this does not work correctly. calculating the x position wrongly.
+        match text.get_char_pos_x().iter().position(|&char_x| char_x * size as f32 >= x as f32) {
+            Some(colum) => {
+                return (line, colum);
+            }
+            None => {
+                return (line, text_line.text.len() -1);
+            }
+        }
+    }
+
     fn draw_minimap(&self) -> Result<(), glium::DrawError> {
         unimplemented!()
     }
@@ -106,7 +125,6 @@ impl Renderer {
         let text_tf = |px: f32, py: f32| -> [[f32; 4]; 4] {
             let (x, y) = (px / w as f32 * 2. - 1.,
                          (py - size as f32 / 2.) / h as f32 * 2. - 1.);
-
             let scale = 2. * size as f32;
 
             [[scale / w as f32, 0.0, 0.0, 0.0],
