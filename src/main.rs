@@ -2,7 +2,7 @@
 mod core;
 mod renderer;
 mod controller;
-mod line;
+mod text;
 mod file_dialog;
 
 #[macro_use]

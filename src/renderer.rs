@@ -7,9 +7,8 @@ use glium_text;
 use glium::Surface;
 use glium::index::PrimitiveType;
 
-use line::Line;
+use text::Line;
 use controller::State;
-
 
 pub struct Renderer {
     program: glium::Program,
@@ -89,7 +88,7 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&self, display: &glium::backend::glutin_backend::GlutinFacade, state: &State, lines_y: &[i32]) {
+    pub fn draw(&self, display: &glium::backend::glutin_backend::GlutinFacade, lines: Vec<(f32, Line)>) {
         let mut target = display.draw();
         target.clear_color(1.0, 1.0, 1.0, 0.0);
         let (w, h) = target.get_dimensions();
@@ -99,7 +98,7 @@ impl Renderer {
         // frame.draw(&mut target, &self.program, (0.,0.));
         // bg.draw(&mut target, &self.program, (0.,0.));
 
-        self.draw_text(&mut target, state, lines_y).unwrap();
+        self.draw_text(&mut target, lines).unwrap();
 
         target.finish().unwrap();
     }
@@ -108,19 +107,15 @@ impl Renderer {
         unimplemented!()
     }
 
-    fn draw_text(&self, target: &mut glium::Frame, state: &State, lines_y: &[i32])
+    fn draw_text(&self, target: &mut glium::Frame, lines: Vec<(f32, Line)>) // state: &State, lines_y: &[i32])
             -> Result<(), glium::DrawError> {
-        let start = ::std::cmp::max(state.scroll_to.0 as i64 - state.first_line as i64 - lines_y.len() as i64 + 1, 0);
-        for (i,(line,y)) in state.text.iter()
-                                      .skip(start as usize)
-                                      .zip(lines_y.iter())
-                                      .enumerate() {
-            try!(self.draw_line(target, line, (15., *y as f32), i as u64 + state.first_line));
+        for (y, line) in lines {
+            try!(self.draw_line(target, &line, (15., y), 0));
         }
         Ok(())
     }
 
-    fn draw_line(&self, target: &mut glium::Frame, line: &Line, (px, py): (f32, f32), line_nr: u64)
+    pub fn draw_line(&self, target: &mut glium::Frame, line: &Line, (px, py): (f32, f32), line_nr: u64)
             -> Result<(), glium::DrawError> {
         let size = self.font_texture.em_pixels();
         let (w, h) = target.get_dimensions();

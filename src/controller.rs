@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use core::Core;
 use renderer::Renderer;
-use line::Line;
+use text::Text;
 use file_dialog;
 
 // pub struct Controller {
@@ -20,7 +20,7 @@ use file_dialog;
 
 pub struct State {
     pub filename: Option<String>,
-    pub text: Vec<Line>,
+    pub text: Text,
     pub first_line: u64,
     pub line_count: u64,
     pub scroll_to: (u64, u64),
@@ -30,7 +30,7 @@ impl State {
     pub fn new(filename: Option<String>) -> State {
         State {
             filename: filename,
-            text: vec![],
+            text: Text::new(),
             first_line: 0,
             line_count: 1,
             scroll_to: (0, 0),
@@ -39,38 +39,21 @@ impl State {
 
     // the 'data' field is specified in
     // https://github.com/google/xi-editor/blob/master/doc/frontend.md#settext
+    // The line data itself is updated in fn update_lines
     pub fn update(&mut self, data: Value) {
         println!("{:?}", data);
         if let Some(array) = data.as_array() {
             if let Some("settext") = array[0].as_string() {
                 if let Some(dict) = array[1].as_object() {
-                    let array = dict.get("lines").unwrap().as_array().unwrap();
-                    self.text.clear();
-                    for line in array {
-                        let line = line.as_array().unwrap();
-                        let text = line[0].as_string().unwrap().into();
-
-                        // annotations
-                        let mut cursor = None;
-                        for annotation in line.iter().skip(1).map(|a| a.as_array().unwrap()) {
-                            match annotation[0].as_string().unwrap() {
-                                "cursor" => {
-                                    cursor = Some(annotation[1].as_u64().unwrap());
-                                },
-                                _ => () // ignore unknown annotations
-                            }
-
-                        }
-
-                        self.text.push(Line { text: text, cursor: cursor });
-                    }
-
                     self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
                     self.line_count = dict.get("height").unwrap().as_u64().unwrap();
-                    // TODO: check if it is supposed to be in every message or not
+                    self.text.refresh(self.line_count);
+                    self.text.add_lines(dict.get("lines").unwrap(), self.first_line);
+                    // TODO: is this supposed to be in every message, or not?
                     if let Some(x) = dict.get("scrollto")
                                          .and_then(|x| x.as_array()) {
-                        self.scroll_to = (x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
+                        self.text.scroll_to(x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
+                        // self.scroll_to = (x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
                     }
                 }
             }
@@ -86,12 +69,10 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     }
 
     let mut state = State::new(filename);
-
     let renderer = Renderer::new(&display);
 
-    let mut lines_y: Option<Vec<i32>> = None;
-
     // the main loop
+    // TODO: replace stateful ctrl/shift modifiers by stateless ones
     let (mut ctrl, mut shift) = (false, false);
     let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
     'a: loop {
@@ -106,7 +87,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
                     if ctrl {
-                        println!("Saving a file..");
+                        println!("Saving a file.");
 
                         if let Some(ref filename) = state.filename {
                             core.save(filename);
@@ -124,7 +105,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::T)) => {
                     if ctrl {
                         println!("Testing..");
-                        core.test();
+                        println!("res: {:?}", core.render_lines_sync(0, 10));
                     }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) => {
                     core.left();
@@ -161,10 +142,9 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     println!("ch: {:?}", ch);
                     core.char(ch);
 
-                }, Event::Resized(w,h) => {
-                    let ly = get_lines_y(h);
-                    core.scroll(state.first_line, ly.len() as u64);
-                    lines_y = Some(ly);
+                }, Event::Resized(w, h) => {
+                    state.text.set_size(w, h);
+                    core.scroll(state.text.top as u64, state.text.height.round() as u64);
                 }, Event::Closed => break 'a,
                 _ => ()
             }
@@ -200,19 +180,12 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
             state.update(value);
         }
 
-        if let Some(ref lines_y) = lines_y {
-            renderer.draw(&display, &state, lines_y);
-        }
+        // let mut target = renderer.draw();
+        renderer.draw(&display, state.text.get_lines());
+
+
+        // target.finish();
 
         thread::sleep(Duration::from_millis(15));
     }
-}
-
-fn get_lines_y(height: u32) -> Vec<i32> {
-    let line_h = 20;
-    let margin = 15;
-
-    (0..).map(|i| height as i32 - margin - line_h/2 - i * line_h)
-         .take_while(|i| *i >= margin + line_h/2)
-         .collect()
 }

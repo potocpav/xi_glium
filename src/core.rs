@@ -17,6 +17,7 @@ macro_rules! println_err (
 pub struct Core {
     stdin: ChildStdin,
     pub rx: mpsc::Receiver<Value>,
+    rpc_rx: mpsc::Receiver<Value>, // ! A simple piping works only for synchronous calls.
     rpc_index: u64,
 }
 
@@ -34,6 +35,7 @@ impl Core {
 
 
         let (tx, rx) = mpsc::channel();
+        let (rpc_tx, rpc_rx) = mpsc::channel();
         let mut stdout = process.stdout.unwrap();
         thread::spawn(move || {
             let mut size_buf = [0u8; 8];
@@ -43,7 +45,14 @@ impl Core {
                 let mut buf = vec![0; size as usize];
                 if stdout.read_exact(&mut buf).is_ok() {
                     if let Ok(data) = serde_json::from_slice::<Value>(&buf) {
-                        // println!("from core: {:?}", data);
+                        {
+                            let arr = data.as_array().unwrap();
+                            if arr[0].as_string().unwrap() == "rpc_response" {
+                                // catch an rpc response to an internal pipe
+                                rpc_tx.send(arr[1].clone());
+                                continue;
+                            }
+                        }
                         tx.send(data).unwrap();
                     }
                 }
@@ -62,7 +71,7 @@ impl Core {
 
         let stdin = process.stdin.unwrap();
 
-        Core { stdin: stdin, rx: rx, rpc_index: 0 }
+        Core { stdin: stdin, rx: rx, rpc_rx: rpc_rx, rpc_index: 0 }
     }
 
     pub fn save(&mut self, filename: &str) {
@@ -125,6 +134,14 @@ impl Core {
                 )
             ).unwrap();
         self.write(value);
+    }
+
+    pub fn render_lines_sync(&mut self, start: u64, end: u64) -> Value {
+        self.render_lines(start, end);
+        let value = self.rpc_rx.recv().unwrap();
+        let object = value.as_object().unwrap();
+        assert_eq!(self.rpc_index, object.get("index").unwrap().as_u64().unwrap());
+        object.get("result").unwrap().clone()
     }
 
     fn write(&mut self, message: Value) {
