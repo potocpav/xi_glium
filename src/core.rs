@@ -6,6 +6,7 @@ use std::io::BufReader;
 use std::io::prelude::*;
 
 use serde_json::{self,Value};
+use serde_json::builder::*;
 
 macro_rules! println_err (
     ($($arg:tt)*) => { {
@@ -16,6 +17,7 @@ macro_rules! println_err (
 pub struct Core {
     stdin: ChildStdin,
     pub rx: mpsc::Receiver<Value>,
+    rpc_index: u64,
 }
 
 impl Core {
@@ -60,21 +62,19 @@ impl Core {
 
         let stdin = process.stdin.unwrap();
 
-        Core { stdin: stdin, rx: rx }
+        Core { stdin: stdin, rx: rx, rpc_index: 0 }
     }
 
     pub fn save(&mut self, filename: &str) {
-        self.write(format!("[\"save\", \"{}\"]", filename).as_bytes()).unwrap();
+        self.write(ArrayBuilder::new().push("save").push(filename).unwrap());
     }
 
-
-    // TODO: construct the JSON safely!!
     pub fn open(&mut self, filename: &str) {
-        self.write(format!("[\"open\", \"{}\"]", filename).as_bytes()).unwrap();
+        self.write(ArrayBuilder::new().push("open").push(filename).unwrap());
     }
 
     fn send_char(&mut self, c: char) {
-        self.write(format!(r#"["key", {{ "chars": "{}", "flags": 0}}]"#, c).as_bytes()).unwrap();
+        self.write(ArrayBuilder::new().push("key").push_object(|builder| builder.insert("chars", c).insert("flags", 0)).unwrap());
     }
 
     pub fn left(&mut self) { self.send_char('\u{F702}'); }
@@ -98,27 +98,39 @@ impl Core {
     pub fn char(&mut self, ch: char) { self.send_char(ch); }
 
     pub fn scroll(&mut self, start: u64, end: u64) {
-        // println!("test");
-        // self.send_char('\u{F703}\", \"flags\": 0}]".as_bytes());
-        self.write(format!(r#"["scroll", [{}, {}]]"#, start, end).as_bytes()).unwrap();
+        self.write(ArrayBuilder::new().push("scroll").push_array(|builder| builder.push(start).push(end)).unwrap());
     }
 
     pub fn test(&mut self) {
+        self.render_lines(0, 10);
         // println!("test");
         // self.send_char('\u{F703}\", \"flags\": 0}]".as_bytes());
-        self.write(r#"["scroll", [5, 20]]"#.as_bytes()).unwrap();
+        // self.write(ArrayBuilder::new().push("scroll").push(filename).unwrap());
+        // self.write(r#"["scroll", [5, 20]]"#.as_bytes()).unwrap();
     }
-    //
-    // pub fn render_lines(&mut self) {
-    //     println!("render_lines");
-    //     self.write(r#"["rpc", {"index": "1", "request": ["render_lines", { "first_line": 0, "last_line": 10}]}]"#.as_bytes()).unwrap();
-    // }
 
-    fn write(&mut self, message: &[u8]) -> ::std::io::Result<usize> {
-        Ok(
-            try!(self.stdin.write(&encode_u64(message.len() as u64))) +
-            try!(self.stdin.write(message))
-        )
+    pub fn render_lines(&mut self, start: u64, end: u64) {
+        self.rpc_index += 1;
+        println!("render_lines");
+        let value = ArrayBuilder::new()
+            .push("rpc")
+            .push_object(|builder| builder
+                .insert("index", self.rpc_index)
+                .insert_array("request", |builder| builder
+                    .push("render_lines")
+                    .push_object(|builder| builder
+                        .insert("first_line", start)
+                        .insert("last_line", end)
+                    )
+                )
+            ).unwrap();
+        self.write(value);
+    }
+
+    fn write(&mut self, message: Value) {
+        let str_msg = serde_json::ser::to_string(&message).unwrap();
+        self.stdin.write(&encode_u64(str_msg.len() as u64)).unwrap();
+        self.stdin.write(&str_msg.as_bytes()).unwrap();
     }
 }
 
