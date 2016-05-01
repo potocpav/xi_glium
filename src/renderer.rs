@@ -27,34 +27,55 @@ impl Renderer {
         let text_system = glium_text::TextSystem::new(display);
         let font_texture = glium_text::FontTexture::new(display, File::open(&Path::new("Hack-Regular.ttf")).unwrap(), font_size).unwrap();
 
-        let program = {
-            let vs_src = r#"
-                #version 140
+        let program = program!(display,
+            140 => {
+                vertex: "
+                    #version 140
+                    in vec2 position;
+                    in vec4 color;
+                    out vec4 v_color;
+                    uniform vec2 win_size;
+                    uniform vec2 offset;
+                    void main() {
+                        v_color = color;
+                        gl_Position = vec4((position + offset) / win_size * 2. - 1., 0.0, 1.0);
+                    }
+                ",
+                fragment: "
+                    #version 140
+                    in vec4 v_color;
+                    out vec4 color;
+                    void main() {
+                        color = v_color;
+                    }
+                "
+            },
+            110 => {
+                vertex: "
+                    #version 110
 
-                in vec2 position;
-                in vec4 color;
-                out vec4 v_color;
+                    attribute vec2 position;
+                    attribute vec4 color;
+                    varying vec4 v_color;
 
-                uniform vec2 win_size;
-                uniform vec2 offset;
+                    uniform vec2 win_size;
+                    uniform vec2 offset;
 
-                void main() {
-                    v_color = color;
-                    gl_Position = vec4((position + offset) / win_size * 2. - 1., 0.0, 1.0);
-                }
-            "#;
-            let fs_src = r#"
-                #version 140
+                    void main() {
+                        v_color = color;
+                        gl_Position = vec4((position + offset) / win_size * 2. - 1., 0.0, 1.0);
+                    }
+                ",
+                fragment: "
+                    #version 110
 
-                in vec4 v_color;
-                out vec4 color;
+                    varying vec4 v_color;
 
-                void main() {
-                    color = v_color;
-                }
-            "#;
-            glium::Program::from_source(display, vs_src, fs_src, None).unwrap()
-        };
+                    void main() {
+                        gl_FragColor = v_color;
+                    }
+                "
+        }).unwrap();
 
         let cursor = Primitive::new_line(display, (0.,-10.), (0.,10.), [0.,0.,0.,1.]);
         let line_bg = Primitive::new_rect(display, (0., -10.), (2000., 10.), [1.,1.,0.7,1.]);
