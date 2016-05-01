@@ -314,7 +314,9 @@ impl<F> TextDisplay<F> where F: Deref<Target=FontTexture> {
         text_display
     }
 
-    /// Returns the width in GL units of the text.
+    /// Return the x-positions (in em-units) of the breaks between characters.
+    /// When a character starts at n-th byte, then get_char_pos_x()[n] is the x-pos of the character.
+    /// The last value of the array is the x-pos of the end of the string
     pub fn get_char_pos_x(&self) -> &[f32] {
         &self.char_pos_x
     }

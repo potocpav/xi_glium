@@ -37,10 +37,9 @@ impl<'a> Target<'a> {
         let text = glium_text::TextDisplay::new(&renderer.text_system, &renderer.font_texture, &line.text);
 
         if let Some(mut pos) = line.cursor {
-            if pos >= text.get_char_pos_x().len() as u64 {
-                pos = (text.get_char_pos_x().len() - 1) as u64;
-            }
-            let offset_local = text.get_char_pos_x()[pos as usize];
+            let ch_pos_x = text.get_char_pos_x();
+            assert!(ch_pos_x.len() > pos as usize);
+            let offset_local = ch_pos_x[pos as usize];
             let offset_screen = offset_local * size as f32;
 
             renderer.line_bg.draw(target, &renderer.program, (px, py)).unwrap();
