@@ -27,10 +27,10 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(filename: Option<String>) -> State {
+    pub fn new(filename: Option<String>, renderer: &Renderer) -> State {
         State {
             filename: filename,
-            text: Text::new(),
+            text: Text::new(&renderer),
             first_line: 0,
             line_count: 1,
             scroll_to: (0, 0),
@@ -68,8 +68,8 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
         core.open(filename);
     }
 
-    let mut state = State::new(filename);
-    let renderer = Renderer::new(&display);
+    let renderer = Renderer::new(display.clone());
+    let mut state = State::new(filename, &renderer);
 
     // the main loop
     // TODO: replace stateful ctrl/shift modifiers by stateless ones
@@ -180,7 +180,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
             state.update(value);
         }
 
-        let mut target = renderer.draw(&display);
+        let mut target = renderer.draw();
 
         state.text.render(&mut target).unwrap();
 

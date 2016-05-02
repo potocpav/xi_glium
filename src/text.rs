@@ -21,11 +21,13 @@ pub struct Text {
     pub top: f64,
     pub height: f64,
     n_lines: u64,
+    renderer: TextRenderer,
+    // scrollbar: Primitive,
 }
 
 impl Text {
-    pub fn new() -> Text {
-        Text { cache: BTreeMap::new(), top: 0., height: 0., n_lines: 0}
+    pub fn new(renderer: &Renderer) -> Text {
+        Text { cache: BTreeMap::new(), top: 0., height: 0., n_lines: 0, renderer: TextRenderer::new(renderer) }
     }
 
     pub fn refresh(&mut self, n_lines: u64) {
@@ -35,8 +37,10 @@ impl Text {
 
     pub fn render(&self, target: &mut Target) -> Result<(),DrawError> {
         for (y, line) in self.get_lines() {
-            try!(target.draw_line(&line, (15., y), 0));
+            self.renderer.draw_line(target, &line, (15., y), 0);
         }
+        // let (w,h) = target.target.get_dimensions();
+        // self.renderer.draw_scrollbar(target, w - 20., h, 0.);
         Ok(())
     }
 
