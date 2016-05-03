@@ -16,7 +16,7 @@ Screenshot:
 * Graceful window resizing
 
 You must specify a path to the `xicore` executable (build by cargo inside
-the `rust` subdirectory of xi-editor). Works with the xi-editor commit 693b121,
+the `rust` subdirectory of xi-editor). Works with the xi-editor commit ` 7f7b885`,
 but the HEAD is a good bet.
 
 ## Example usage

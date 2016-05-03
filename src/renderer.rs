@@ -104,7 +104,6 @@ impl Renderer {
 
 pub struct LineRenderer<'a> {
     text_display: glium_text::TextDisplay<&'a glium_text::FontTexture>,
-    em_pixels: f32,
     pub char_pos_x: Vec<f32>, // in screen coordinates
 }
 
@@ -116,7 +115,6 @@ impl<'a> LineRenderer<'a> {
 
         LineRenderer {
             text_display: text_display,
-            em_pixels: em_pixels,
             char_pos_x: char_pos_x,
         }
     }
@@ -154,7 +152,7 @@ impl TextRenderer {
         TextRenderer { cursor: cursor, line_bg: line_bg, left_margin: left_margin }
     }
 
-    pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32), line_nr: u64)
+    pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32))
             -> Result<(), glium::DrawError> {
 
         if let Some(mut pos) = line.cursor {
@@ -173,7 +171,7 @@ impl TextRenderer {
 
     pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)]) {
         for &(y, line) in lines {
-            self.draw_line(target, &line, (self.left_margin, y), 0);
+            self.draw_line(target, &line, (self.left_margin, y));
         }
         // let (w,h) = target.target.get_dimensions();
         // self.renderer.draw_scrollbar(target, w - 20., h, 0.);
@@ -202,13 +200,13 @@ pub struct Primitive {
 }
 
 impl Primitive {
-    pub fn new(renderer: &Renderer, verts: &[Vertex], primitive_type: glium::index::PrimitiveType, fill: bool) -> Self {
-        Primitive {
-            vertex_buffer: glium::VertexBuffer::new(&renderer.display, verts).unwrap(),
-            index_buffer: glium::index::NoIndices(primitive_type),
-            fill: fill,
-        }
-    }
+    // pub fn new(renderer: &Renderer, verts: &[Vertex], primitive_type: glium::index::PrimitiveType, fill: bool) -> Self {
+    //     Primitive {
+    //         vertex_buffer: glium::VertexBuffer::new(&renderer.display, verts).unwrap(),
+    //         index_buffer: glium::index::NoIndices(primitive_type),
+    //         fill: fill,
+    //     }
+    // }
 
     pub fn new_rect(renderer: &Renderer, p1: (f32,f32), p2: (f32,f32), color: [f32; 4]) -> Self {
         let verts = vec![

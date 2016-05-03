@@ -37,27 +37,21 @@ impl<'a> State<'a> {
         }
     }
 
-    // the 'data' field is specified in
+    // the 'params' field is specified in
     // https://github.com/google/xi-editor/blob/master/doc/frontend.md#settext
     // The line data itself is updated in fn update_lines
     // renderer is needed, because the new lines are rendered as they come.
-    pub fn update(&mut self, renderer: &'a Renderer, data: Value) {
-        println!("{:?}", data);
-        if let Some(array) = data.as_array() {
-            if let Some("settext") = array[0].as_string() {
-                if let Some(dict) = array[1].as_object() {
-                    self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
-                    self.line_count = dict.get("height").unwrap().as_u64().unwrap();
-                    self.text.refresh(self.line_count);
-                    self.text.add_lines(&renderer, dict.get("lines").unwrap(), self.first_line);
-                    // TODO: is this supposed to be in every message, or not?
-                    if let Some(x) = dict.get("scrollto")
-                                         .and_then(|x| x.as_array()) {
-                        self.text.scroll_to(x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
-                        // self.scroll_to = (x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
-                    }
-                }
-            }
+    pub fn update(&mut self, renderer: &'a Renderer, params: Value) {
+        let dict = params.as_object().unwrap().get("update").unwrap().as_object().unwrap();
+
+        self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
+        self.line_count = dict.get("height").unwrap().as_u64().unwrap();
+        self.text.refresh(self.line_count);
+        self.text.add_lines(&renderer, dict.get("lines").unwrap(), self.first_line);
+        // TODO: is this supposed to be in every message, or not?
+        if let Some(x) = dict.get("scrollto")
+                             .and_then(|x| x.as_array()) {
+            self.text.scroll_to(x[0].as_u64().unwrap(), x[1].as_u64().unwrap());
         }
     }
 }
@@ -197,7 +191,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
             }
         }
 
-        while let Ok(value) = core.rx.try_recv() {
+        while let Ok(value) = core.update_rx.try_recv() {
             state.update(&renderer, value);
         }
 
