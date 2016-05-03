@@ -42,6 +42,7 @@ impl<'a> State<'a> {
     // The line data itself is updated in fn update_lines
     // renderer is needed, because the new lines are rendered as they come.
     pub fn update(&mut self, renderer: &'a Renderer, params: Value) {
+        println!("{:?}", params);
         let dict = params.as_object().unwrap().get("update").unwrap().as_object().unwrap();
 
         self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
@@ -124,6 +125,9 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     core.page_up();
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::PageDown)) => {
                     core.page_down();
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Return))
+                 | Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::NumpadEnter)) => {
+                    core.insert_newline();
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::F1)) => {
                     core.f1();
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::F2)) => {
@@ -139,7 +143,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     println!("shift: {}", shift);
                 },
                 Event::ReceivedCharacter(ch) => {
-                    if ch == '\x08' || ch == '\x7f' || ctrl {
+                    if ch == '\x08' || ch == '\x7f' || ch == '\r' || ctrl {
                         continue; // delete is not implemented, backspace is special-cased, ignore ctrl-ed characters.
                     }
                     println!("ch: {:?}", ch);

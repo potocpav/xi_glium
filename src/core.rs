@@ -82,7 +82,6 @@ impl Core {
             .insert("params", params)
             .unwrap();
         let mut str_msg = serde_json::ser::to_string(&message).unwrap();
-        println!("Sending {}", str_msg);
         str_msg.push('\n');
         self.stdin.write(&str_msg.as_bytes()).unwrap();
         self.rpc_index
@@ -124,6 +123,8 @@ impl Core {
     pub fn page_up(&mut self) { self.call_edit("page_up", None); }
 
     pub fn page_down(&mut self) { self.call_edit("page_down", None); }
+
+    pub fn insert_newline(&mut self) { self.call_edit("insert_newline", None); }
 
     pub fn f1(&mut self) { self.call_edit("debug_rewrap", None); }
 
