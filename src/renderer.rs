@@ -15,6 +15,10 @@ pub struct Target<'a> {
 }
 
 impl<'a> Target<'a> {
+    pub fn get_dimensions(&self) -> (u32,u32) {
+        self.target.get_dimensions()
+    }
+
     pub fn finish(self) {
         self.target.finish().unwrap();
     }

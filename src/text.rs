@@ -51,7 +51,7 @@ impl<'a> Text<'a> {
     }
 
     pub fn render(&self, target: &mut Target) {
-        self.renderer.draw(target, &self.get_lines());
+        self.renderer.draw(target, &self.get_lines(), self.top, self.height, self.n_lines);
     }
 
     pub fn add_lines(&mut self, renderer: &'a Renderer, value: &Value, first: u64) {
@@ -163,19 +163,18 @@ impl TextRenderer {
         line.renderer.draw(target, px, py);
     }
 
-    pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)]) {
+    pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)], top: f64, height: f64, n_lines: u64) {
         for &(y, line) in lines {
             self.draw_line(target, &line, (self.left_margin, y));
         }
-        // let (w,h) = target.target.get_dimensions();
-        // self.renderer.draw_scrollbar(target, w - 20., h, 0.);
-    }
 
-    // pub fn draw_scrollbar(&self, target: &mut Target, x: f32, y1: f32, y2: f32, top: f64, height: f64, total: f64)
-    //         -> Result<(), glium::DrawError> {
-    //     const WIDTH: f32 = 15.;
-    //     let mesh = Primitive::new_rect(&target.renderer, (x-WIDTH/2., 100.), (x+WIDTH/2., 1000.), [0.4,0.4,0.4,1.]);
-    //     mesh.draw(target, (0., 0.));
-    //     unimplemented!()
-    // }
+        // draw scrollbar
+        let dims = target.get_dimensions();
+        let (w, h) = (dims.0 as f32, dims.1 as f32);
+        let (rel_y, rel_h) = (top / n_lines as f64, height / n_lines as f64);
+        let scrollbar = Primitive::new_rect(&target.renderer,
+            (w - 20., h - rel_y as f32 * h), (w, h - (rel_y + rel_h) as f32 * h),
+            [0.5,0.5,0.5,1.]);
+        scrollbar.draw(target, (0.,0.)).unwrap();
+    }
 }
