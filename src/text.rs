@@ -86,9 +86,8 @@ impl<'a> Text<'a> {
     pub fn scroll(&mut self, delta_y: f64) {
         let y = self.top + delta_y;
         let max = self.n_lines as f64 - self.height;
-        self.top = if y > max { max }
-        else if y < 0. { 0. }
-        else { y };
+        if y > max { self.top = max }
+        if self.top < 0. {  self.top = 0. }
     }
 
     pub fn get_lines(&self) -> Vec<(f32, &Line)> {
