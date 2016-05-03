@@ -11,6 +11,7 @@ extern crate glium_text;
 extern crate serde_json;
 extern crate gtk;
 extern crate glib; // Needed by gtk to supply a threaded fn idle_add
+extern crate clipboard;
 
 fn main() {
     let filename = std::env::args().nth(1);

@@ -10,6 +10,7 @@ const LEFT_MARGIN: f32 = 15.;
 pub struct Line<'a> {
     pub text: String,
     pub cursor: Option<u64>,
+    selection: Option<(u64,u64)>,
     pub renderer: LineRenderer<'a>, // This is the lifetime that infects the hierarchy up to State
 }
 
@@ -18,7 +19,7 @@ impl<'a> Line<'a> {
     pub fn placeholder(renderer: &'a Renderer) -> Line<'a> {
         let text = ">>> NOT IN CACHE <<<";
         let renderer = LineRenderer::new(renderer, text);
-        Line { text: text.into(), cursor: None, renderer: renderer }
+        Line { text: text.into(), cursor: None, selection: None, renderer: renderer }
     }
 }
 
@@ -59,16 +60,19 @@ impl<'a> Text<'a> {
             let text = line[0].as_string().unwrap().to_string();
             // annotations
             let mut cursor = None;
+            let mut selection = None;
             for annotation in line.iter().skip(1).map(|a| a.as_array().unwrap()) {
                 match annotation[0].as_string().unwrap() {
                     "cursor" => {
                         cursor = Some(annotation[1].as_u64().unwrap());
                     },
-                    _ => () // ignore unknown annotations
+                    "sel" => {
+                        selection = Some((annotation[1].as_u64().unwrap(), annotation[2].as_u64().unwrap()));
+                    }, _ => () // ignore unknown annotations
                 }
             }
             let renderer = LineRenderer::new(renderer, &text);
-            self.cache.insert(i as u64+first, Line { text: text, cursor: cursor, renderer: renderer });
+            self.cache.insert(i as u64+first, Line { text: text, cursor: cursor, selection: selection, renderer: renderer });
         }
     }
 
@@ -130,14 +134,22 @@ impl TextRenderer {
     }
 
     pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32)) {
+        let offset = |pos| {
+            let ch_pos_x = &line.renderer.char_pos_x;
+            ch_pos_x[::std::cmp::min(pos as usize, ch_pos_x.len() - 1)]
+        };
 
         if let Some(pos) = line.cursor {
-            let ch_pos_x = &line.renderer.char_pos_x;
-            assert!(ch_pos_x.len() > pos as usize);
-            let offset = ch_pos_x[pos as usize];
-
             self.line_bg.draw(target, (px, py)).unwrap();
-            self.cursor.draw(target, (offset + px, py)).unwrap();
+            self.cursor.draw(target, (offset(pos) + px, py)).unwrap();
+        }
+
+        if let Some(sel) = line.selection {
+            let selection_bg = Primitive::new_rect(&target.renderer,
+                (offset(sel.0) as f32 + px, -10.),
+                (offset(sel.1) as f32 + px, 10.),
+                [0.5,0.5,1.,1.]);
+            selection_bg.draw(target, (0.,py)).unwrap();
         }
 
         line.renderer.draw(target, px, py);

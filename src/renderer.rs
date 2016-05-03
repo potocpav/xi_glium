@@ -9,7 +9,9 @@ use glium::index::PrimitiveType;
 
 pub struct Target<'a> {
     target: glium::Frame,
-    renderer: &'a Renderer,
+    // TODO: make it somehow not public (is public to enable
+    // creating new objects from Target).
+    pub renderer: &'a Renderer,
 }
 
 impl<'a> Target<'a> {

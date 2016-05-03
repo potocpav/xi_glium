@@ -43,6 +43,7 @@ impl Core {
                 if let Ok(data) = serde_json::from_slice::<Value>(line.unwrap().as_bytes()) {
                     let req = data.as_object().unwrap();
                     if let (Some(id), Some(result)) = (req.get("id"), req.get("result")) {
+                        println!("res: {:?}", result);
                         rpc_tx.send((id.as_u64().unwrap(), result.clone())).unwrap();
                     } else if let (Some(method), Some(params)) = (req.get("method"), req.get("params")) {
                         if method.as_string().unwrap() == "update" {
@@ -87,6 +88,13 @@ impl Core {
         self.rpc_index
     }
 
+    fn call_sync(&mut self, method: &str, params: Value) -> Value {
+        let i = self.call(method, params);
+        let (id,result) = self.rpc_rx.recv().unwrap();
+        assert_eq!(i, id);
+        result
+    }
+
     fn call_edit(&mut self, method: &str, params: Option<Value>) {
         let obj = ObjectBuilder::new()
             .insert("method", method)
@@ -95,11 +103,12 @@ impl Core {
         self.call("edit", obj.unwrap());
     }
 
-    fn call_sync(&mut self, method: &str, params: Value) -> Value {
-        let i = self.call(method, params);
-        let (id,result) = self.rpc_rx.recv().unwrap();
-        assert_eq!(i, id);
-        result
+    fn call_edit_sync(&mut self, method: &str, params: Option<Value>) -> Value{
+        let obj = ObjectBuilder::new()
+            .insert("method", method)
+            .insert("tab", &self.tab)
+            .insert("params", params.unwrap_or(ArrayBuilder::new().unwrap()));
+        self.call_sync("edit", obj.unwrap())
     }
 
     pub fn save(&mut self, filename: &str) {
@@ -111,18 +120,24 @@ impl Core {
     }
 
     pub fn left(&mut self) { self.call_edit("move_left", None); }
+    pub fn left_sel(&mut self) { self.call_edit("move_left_and_modify_selection", None); }
 
     pub fn right(&mut self) { self.call_edit("move_right", None); }
+    pub fn right_sel(&mut self) { self.call_edit("move_right_and_modify_selection", None); }
 
     pub fn up(&mut self) { self.call_edit("move_up", None); }
+    pub fn up_sel(&mut self) { self.call_edit("move_up_and_modify_selection", None); }
 
     pub fn down(&mut self) { self.call_edit("move_down", None); }
+    pub fn down_sel(&mut self) { self.call_edit("move_down_and_modify_selection", None); }
 
     pub fn del(&mut self) { self.call_edit("delete_backward", None); }
 
     pub fn page_up(&mut self) { self.call_edit("page_up", None); }
+    pub fn page_up_sel(&mut self) { self.call_edit("page_up_and_modify_selection", None); }
 
     pub fn page_down(&mut self) { self.call_edit("page_down", None); }
+    pub fn page_down_sel(&mut self) { self.call_edit("page_down_and_modify_selection", None); }
 
     pub fn insert_newline(&mut self) { self.call_edit("insert_newline", None); }
 
@@ -140,6 +155,16 @@ impl Core {
 
     pub fn click(&mut self, line: u64, column: u64) {
         self.call_edit("click", Some(ArrayBuilder::new().push(line).push(column).push(0).push(1).unwrap()));
+    }
+
+    pub fn copy(&mut self) -> String {
+        self.call_edit_sync("copy", None).as_string().map(|x|x.into()).unwrap()
+    }
+    pub fn cut(&mut self) -> String {
+        self.call_edit_sync("cut", None).as_string().map(|x|x.into()).unwrap()
+    }
+    pub fn paste(&mut self, s: String) {
+        self.call_edit("insert", Some(ObjectBuilder::new().insert("chars", s).unwrap()));
     }
 
     #[allow(dead_code)]

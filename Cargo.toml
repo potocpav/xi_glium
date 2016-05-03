@@ -5,10 +5,11 @@ authors = ["Pavel Potocek <pavelpotocek@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-serde_json = "*"
-gtk = "*"
+clipboard = "*"
 glib = "*"
 glium = "0.14"
+gtk = "*"
+serde_json = "*"
 
 [dependencies.glium_text]
 path = "glium_text"

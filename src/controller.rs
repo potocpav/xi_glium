@@ -4,6 +4,7 @@ use std::thread;
 
 use glium::backend::glutin_backend::GlutinFacade;
 use serde_json::Value;
+use clipboard::ClipboardContext;
 
 use core::Core;
 use renderer::Renderer;
@@ -42,7 +43,7 @@ impl<'a> State<'a> {
     // The line data itself is updated in fn update_lines
     // renderer is needed, because the new lines are rendered as they come.
     pub fn update(&mut self, renderer: &'a Renderer, params: Value) {
-        println!("{:?}", params);
+        // println!("{:?}", params);
         let dict = params.as_object().unwrap().get("update").unwrap().as_object().unwrap();
 
         self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
@@ -72,6 +73,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
 
     let renderer = Renderer::new(display.clone());
     let mut state = State::new(filename, &renderer);
+    let mut clipboard = ClipboardContext::new().unwrap();
 
     // the main loop
     // TODO: replace stateful ctrl/shift modifiers by stateless ones
@@ -91,8 +93,6 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
                     if ctrl {
-                        println!("Saving a file.");
-
                         if let Some(ref filename) = state.filename {
                             core.save(filename);
                         } else {
@@ -111,20 +111,37 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                         println!("Testing..");
                         println!("res: {:?}", core.render_lines_sync(0, 10));
                     }
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::C)) => {
+                    if ctrl {
+                        let s = core.copy();
+                        clipboard.set_contents(s).unwrap();
+                        clipboard.get_contents().unwrap(); // if this is not done, get_contents() gets an old value
+                    }
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::X)) => {
+                    if ctrl {
+                        let s = core.cut();
+                        clipboard.set_contents(s).unwrap();
+                        clipboard.get_contents().unwrap(); // if this is not done, get_contents() gets an old value
+                    }
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::V)) => {
+                    if ctrl {
+                        let s = clipboard.get_contents().unwrap();
+                        core.paste(s);
+                    }
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) => {
-                    core.left();
+                    if shift { core.left_sel() } else { core.left() };
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Right)) => {
-                    core.right();
+                    if shift { core.right_sel() } else { core.right() };
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) => {
-                    core.up();
+                    if shift { core.up_sel() } else { core.up() };
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Down)) => {
-                    core.down();
+                    if shift { core.down_sel() } else { core.down() };
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::PageUp)) => {
+                    if shift { core.page_up_sel() } else { core.page_up() };
+                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::PageDown)) => {
+                    if shift { core.page_down_sel() } else { core.page_down() };
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Back)) => {
                     core.del();
-                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::PageUp)) => {
-                    core.page_up();
-                }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::PageDown)) => {
-                    core.page_down();
                 }, Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Return))
                  | Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::NumpadEnter)) => {
                     core.insert_newline();
