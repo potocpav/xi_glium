@@ -114,3 +114,48 @@ impl<'a> Text<'a> {
         self.height = h as f64 / LINE_HEIGHT as f64;
     }
 }
+
+pub struct TextRenderer {
+    cursor: Primitive,
+    line_bg: Primitive,
+    left_margin: f32,
+}
+
+impl TextRenderer {
+    pub fn new(renderer: &Renderer, left_margin: f32) -> TextRenderer {
+        let cursor = Primitive::new_line(&renderer, (0.,-10.), (0.,10.), [0.,0.,0.,1.]);
+        let line_bg = Primitive::new_rect(&renderer, (0., -10.), (2000., 10.), [1.,1.,0.7,1.]);
+
+        TextRenderer { cursor: cursor, line_bg: line_bg, left_margin: left_margin }
+    }
+
+    pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32)) {
+
+        if let Some(pos) = line.cursor {
+            let ch_pos_x = &line.renderer.char_pos_x;
+            assert!(ch_pos_x.len() > pos as usize);
+            let offset = ch_pos_x[pos as usize];
+
+            self.line_bg.draw(target, (px, py)).unwrap();
+            self.cursor.draw(target, (offset + px, py)).unwrap();
+        }
+
+        line.renderer.draw(target, px, py);
+    }
+
+    pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)]) {
+        for &(y, line) in lines {
+            self.draw_line(target, &line, (self.left_margin, y));
+        }
+        // let (w,h) = target.target.get_dimensions();
+        // self.renderer.draw_scrollbar(target, w - 20., h, 0.);
+    }
+
+    // pub fn draw_scrollbar(&self, target: &mut Target, x: f32, y1: f32, y2: f32, top: f64, height: f64, total: f64)
+    //         -> Result<(), glium::DrawError> {
+    //     const WIDTH: f32 = 15.;
+    //     let mesh = Primitive::new_rect(&target.renderer, (x-WIDTH/2., 100.), (x+WIDTH/2., 1000.), [0.4,0.4,0.4,1.]);
+    //     mesh.draw(target, (0., 0.));
+    //     unimplemented!()
+    // }
+}
