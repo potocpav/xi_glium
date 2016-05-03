@@ -156,6 +156,9 @@ impl Core {
     pub fn click(&mut self, line: u64, column: u64) {
         self.call_edit("click", Some(ArrayBuilder::new().push(line).push(column).push(0).push(1).unwrap()));
     }
+    pub fn drag(&mut self, line: u64, column: u64) {
+        self.call_edit("drag", Some(ArrayBuilder::new().push(line).push(column).push(0).push(1).unwrap()));
+    }
 
     pub fn copy(&mut self) -> String {
         self.call_edit_sync("copy", None).as_string().map(|x|x.into()).unwrap()

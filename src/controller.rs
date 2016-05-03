@@ -60,8 +60,9 @@ impl<'a> State<'a> {
 
 #[derive(Debug)]
 struct MouseState {
-    pub x: i32,
-    pub y: i32,
+    pub line: u64,
+    pub column: u64,
+    pub pressed: bool,
 }
 
 pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
@@ -79,7 +80,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     // TODO: replace stateful ctrl/shift modifiers by stateless ones
     let (mut ctrl, mut shift) = (false, false);
     let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
-    let mut mouse_info = MouseState { x: 0, y: 0 };
+    let mut mouse = MouseState { line: 0, column: 0, pressed: false };
     let mut window_height = 0;
     'a: loop {
         // polling and handling the events received by the window
@@ -170,15 +171,20 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     state.text.scroll((-dy*3.) as f64);
                     core.scroll(state.text.top as u64, (state.text.top + state.text.height) as u64);
                 }, Event::MouseMoved(x, y) => {
-                    mouse_info.x = x;
-                    mouse_info.y = window_height - y;
-                },
-                Event::MouseInput(button_state, button) => {
-                    if button_state != ElementState::Released || button != MouseButton::Left {
-                        continue;
+                    let (line, column) = state.text.get_line_col(x, window_height - y);
+                    if mouse.line != line || mouse.column != column { // update only if needed
+                        mouse.line = line;
+                        mouse.column = column;
+                        if mouse.pressed {
+                            core.drag(line, column);
+                        }
                     }
-                    let (line, column) = state.text.get_line_col(mouse_info.x, mouse_info.y);
-                    core.click(line, column);
+                },
+                Event::MouseInput(button_state, MouseButton::Left) => {
+                    mouse.pressed = button_state == ElementState::Pressed;
+                    if mouse.pressed {
+                        core.click(mouse.line, mouse.column);
+                    }
                 },
                 Event::Resized(w, h) => {
                     window_height = h as i32;

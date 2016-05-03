@@ -9,11 +9,11 @@ Screenshot:
 
 ## Features
 
-* Write and backspace text
-* Navigate using mouse, arrows, page-up and page-down
-* Select text using keyboard
-* cut, topy, paste, delete selection
-* Load (`ctrl-o`), save (`ctrl-s`) and save-as (`ctrl-shift-s`) using GTK dialogs
+* Write and backspace text,
+* navigate using mouse, arrows, page-up and page-down,
+* select text using keyboard and mouse,
+* cut, copy, paste and delete selection,
+* load (`ctrl-o`), save (`ctrl-s`) and save-as (`ctrl-shift-s`) using GTK dialogs,
 * F1 to line-wrap
 
 You must specify a path to the `xicore` executable (build by cargo inside
