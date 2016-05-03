@@ -83,6 +83,10 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     let mut mouse = MouseState { line: 0, column: 0, pressed: false };
     let mut window_height = 0;
     'a: loop {
+        while let Ok(value) = core.update_rx.try_recv() {
+            state.update(&renderer, value);
+        }
+
         // polling and handling the events received by the window
         for event in display.poll_events() {
             use glium::glutin::*;
@@ -161,8 +165,9 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     println!("shift: {}", shift);
                 },
                 Event::ReceivedCharacter(ch) => {
+                    // filter out: delete, backspace, enter, ctrl-modified chars
                     if ch == '\x08' || ch == '\x7f' || ch == '\r' || ctrl {
-                        continue; // delete is not implemented, backspace is special-cased, ignore ctrl-ed characters.
+                        continue;
                     }
                     println!("ch: {:?}", ch);
                     core.char(ch);
@@ -189,7 +194,7 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                 Event::Resized(w, h) => {
                     window_height = h as i32;
                     state.text.set_size(w, h);
-                    core.scroll(state.text.top as u64, state.text.height.round() as u64);
+                    core.scroll(state.text.top as u64, (state.text.top + state.text.height.round()) as u64);
                 }, Event::Closed => break 'a,
                 _ => ()
             }
@@ -221,15 +226,9 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
             }
         }
 
-        while let Ok(value) = core.update_rx.try_recv() {
-            state.update(&renderer, value);
-        }
-
         let mut target = renderer.draw();
 
         state.text.render(&mut target);
-
-        // renderer.draw(&display, state.text.get_lines());
 
         target.finish();
 

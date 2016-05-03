@@ -42,6 +42,7 @@ impl Core {
             for line in BufReader::new(stdout).lines() {
                 if let Ok(data) = serde_json::from_slice::<Value>(line.unwrap().as_bytes()) {
                     let req = data.as_object().unwrap();
+                    // println!("received {:?}", req);
                     if let (Some(id), Some(result)) = (req.get("id"), req.get("result")) {
                         println!("res: {:?}", result);
                         rpc_tx.send((id.as_u64().unwrap(), result.clone())).unwrap();
