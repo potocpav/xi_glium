@@ -110,6 +110,12 @@ impl Core {
         self.write(ArrayBuilder::new().push("scroll").push_array(|builder| builder.push(start).push(end)).unwrap());
     }
 
+    pub fn click(&mut self, line: u64, column: u64) {
+        self.write(ArrayBuilder::new().push("click").push_array(|builder| builder
+            .push(line).push(column).push(0).push(1)
+        ).unwrap());
+    }
+
     pub fn test(&mut self) {
         self.render_lines(0, 10);
         // println!("test");

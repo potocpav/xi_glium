@@ -24,6 +24,7 @@ fn main() {
             .with_title(format!("xi_glium"))
             .build_glium()
             .unwrap();
+        display.get_window().unwrap().set_cursor(glium::glutin::MouseCursor::Text);
 
         controller::run(&core_path, filename, display);
 

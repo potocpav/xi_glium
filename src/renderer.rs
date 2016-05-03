@@ -143,14 +143,15 @@ impl<'a> LineRenderer<'a> {
 pub struct TextRenderer {
     cursor: Primitive,
     line_bg: Primitive,
+    left_margin: f32,
 }
 
 impl TextRenderer {
-    pub fn new(renderer: &Renderer) -> TextRenderer {
+    pub fn new(renderer: &Renderer, left_margin: f32) -> TextRenderer {
         let cursor = Primitive::new_line(&renderer, (0.,-10.), (0.,10.), [0.,0.,0.,1.]);
         let line_bg = Primitive::new_rect(&renderer, (0., -10.), (2000., 10.), [1.,1.,0.7,1.]);
 
-        TextRenderer { cursor: cursor, line_bg: line_bg }
+        TextRenderer { cursor: cursor, line_bg: line_bg, left_margin: left_margin }
     }
 
     pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32), line_nr: u64)
@@ -172,7 +173,7 @@ impl TextRenderer {
 
     pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)]) {
         for &(y, line) in lines {
-            self.draw_line(target, &line, (15., y), 0);
+            self.draw_line(target, &line, (self.left_margin, y), 0);
         }
         // let (w,h) = target.target.get_dimensions();
         // self.renderer.draw_scrollbar(target, w - 20., h, 0.);

@@ -4,6 +4,7 @@ use serde_json::Value;
 use renderer::*;
 
 const LINE_HEIGHT: f32 = 20.;
+const LEFT_MARGIN: f32 = 15.;
 
 // #[derive(Clone)]
 pub struct Line<'a> {
@@ -39,7 +40,7 @@ impl<'a> Text<'a> {
             top: 0.,
             height: 0.,
             n_lines: 0,
-            renderer: TextRenderer::new(renderer)
+            renderer: TextRenderer::new(renderer, LEFT_MARGIN)
         }
     }
 
@@ -79,10 +80,26 @@ impl<'a> Text<'a> {
     }
 
     pub fn get_lines(&self) -> Vec<(f32, &Line)> {
+        self.get_line_pos().into_iter().filter_map(|(pos,i)| self.get_line(i).map(|x| (pos,x))).collect()
+    }
+
+    // Return: Vec<(line_pos, line_id)>
+    pub fn get_line_pos(&self) -> Vec<(f32, u64)> {
         (self.top as u64 .. (self.top + self.height).ceil() as u64)
-            .filter_map(|i| self.get_line(i).map(|l|
-                ((self.height - i as f64 + self.top - 0.5) as f32 * LINE_HEIGHT, l)
-            )).collect()
+            .map(|i| ((self.height - i as f64 + self.top - 0.5) as f32 * LINE_HEIGHT, i)
+            ).collect()
+    }
+
+    pub fn get_line_col(&self, px: i32, py: i32) -> (u64,u64) {
+        let line = self.get_line_pos().into_iter().min_by_key(|&(y,_)| (y as i32 - py).abs()).unwrap().1;
+        let column = if let Some(line) = self.get_line(line) {
+            line.renderer.char_pos_x.iter().enumerate().min_by_key(|&(_,x)| {
+                (*x as i32 - px + LEFT_MARGIN as i32).abs()
+            }).unwrap().0 as u64
+        } else { // after the text
+            0
+        };
+        (line, column)
     }
 
     fn get_line(&self, n: u64) -> Option<&Line> {

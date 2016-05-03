@@ -62,6 +62,12 @@ impl<'a> State<'a> {
     }
 }
 
+#[derive(Debug)]
+struct MouseState {
+    pub x: i32,
+    pub y: i32,
+}
+
 pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     let mut core = Core::new(&core_path);
 
@@ -76,6 +82,8 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
     // TODO: replace stateful ctrl/shift modifiers by stateless ones
     let (mut ctrl, mut shift) = (false, false);
     let (mut file_open_rx, mut file_save_rx) = (None, None); // The receiver of a file dialog.
+    let mut mouse_info = MouseState { x: 0, y: 0 };
+    let mut window_height = 0;
     'a: loop {
         // polling and handling the events received by the window
         for event in display.poll_events() {
@@ -135,15 +143,27 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                  | Event::KeyboardInput(state, _, Some(VirtualKeyCode::RShift)) => {
                     shift = state == ElementState::Pressed;
                     println!("shift: {}", shift);
-
-                }, Event::ReceivedCharacter(ch) => {
+                },
+                Event::ReceivedCharacter(ch) => {
                     if ch == '\x08' || ch == '\x7f' || ctrl {
                         continue; // delete is not implemented, backspace is special-cased, ignore ctrl-ed characters.
                     }
                     println!("ch: {:?}", ch);
                     core.char(ch);
-
-                }, Event::Resized(w, h) => {
+                },
+                Event::MouseMoved(x, y) => {
+                    mouse_info.x = x;
+                    mouse_info.y = window_height - y;
+                },
+                Event::MouseInput(button_state, button) => {
+                    if button_state != ElementState::Released || button != MouseButton::Left {
+                        continue;
+                    }
+                    let (line, column) = state.text.get_line_col(mouse_info.x, mouse_info.y);
+                    core.click(line, column);
+                },
+                Event::Resized(w, h) => {
+                    window_height = h as i32;
                     state.text.set_size(w, h);
                     core.scroll(state.text.top as u64, state.text.height.round() as u64);
                 }, Event::Closed => break 'a,
