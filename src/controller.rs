@@ -166,7 +166,10 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
                     println!("ch: {:?}", ch);
                     core.char(ch);
                 },
-                Event::MouseMoved(x, y) => {
+                Event::MouseWheel(MouseScrollDelta::LineDelta(dx,dy), TouchPhase::Moved) => {
+                    state.text.scroll((-dy*3.) as f64);
+                    core.scroll(state.text.top as u64, (state.text.top + state.text.height) as u64);
+                }, Event::MouseMoved(x, y) => {
                     mouse_info.x = x;
                     mouse_info.y = window_height - y;
                 },

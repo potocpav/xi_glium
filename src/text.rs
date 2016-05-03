@@ -83,6 +83,14 @@ impl<'a> Text<'a> {
         self.top = min(self.n_lines as f64, max(self.top, line as f64 - self.height + 1. + 2.)); // scroll dn
     }
 
+    pub fn scroll(&mut self, delta_y: f64) {
+        let y = self.top + delta_y;
+        let max = self.n_lines as f64 - self.height;
+        self.top = if y > max { max }
+        else if y < 0. { 0. }
+        else { y };
+    }
+
     pub fn get_lines(&self) -> Vec<(f32, &Line)> {
         self.get_line_pos().into_iter().filter_map(|(pos,i)| self.get_line(i).map(|x| (pos,x))).collect()
     }
