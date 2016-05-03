@@ -102,14 +102,44 @@ impl Renderer {
     }
 }
 
-
-#[derive(Copy, Clone)]
-pub struct Vertex {
-    pub position: [f32; 2],
-    pub color: [f32; 4],
+pub struct LineRenderer<'a> {
+    text_display: glium_text::TextDisplay<&'a glium_text::FontTexture>,
+    em_pixels: f32,
+    pub char_pos_x: Vec<f32>, // in screen coordinates
 }
-implement_vertex!(Vertex, position, color);
 
+impl<'a> LineRenderer<'a> {
+    pub fn new(renderer: &'a Renderer, text: &str) -> LineRenderer<'a> {
+        let text_display = glium_text::TextDisplay::new(&renderer.text_system, &renderer.font_texture, text);
+        let em_pixels = renderer.font_texture.em_pixels() as f32;
+        let char_pos_x = text_display.get_char_pos_x().into_iter().map(|&x| x * em_pixels).collect();
+
+        LineRenderer {
+            text_display: text_display,
+            em_pixels: em_pixels,
+            char_pos_x: char_pos_x,
+        }
+    }
+
+    pub fn draw(&self, target: &mut Target, px: f32, py: f32) {
+        let size = target.renderer.font_texture.em_pixels();
+        let (w, h) = target.target.get_dimensions();
+        let text_tf = |px: f32, py: f32| -> [[f32; 4]; 4] {
+            let (x, y) = (px / w as f32 * 2. - 1.,
+                         (py - size as f32 / 2.) / h as f32 * 2. - 1.);
+
+            let scale = 2. * size as f32;
+
+            [[scale / w as f32, 0.0, 0.0, 0.0],
+             [0.0, scale / h as f32, 0.0, 0.0],
+             [0.0,              0.0, 1.0, 0.0],
+             [  x,                y, 0.0, 1.0]]
+        };
+        glium_text::draw(&self.text_display, &target.renderer.text_system, &mut target.target, text_tf(px, py), (0., 0., 0., 1.));
+    }
+}
+
+// This struct and impl is in fact isolated from the renderer backend, it can be separated into a file
 pub struct TextRenderer {
     cursor: Primitive,
     line_bg: Primitive,
@@ -125,35 +155,27 @@ impl TextRenderer {
 
     pub fn draw_line(&self, target: &mut Target, line: &Line, (px, py): (f32, f32), line_nr: u64)
             -> Result<(), glium::DrawError> {
-        let size = target.renderer.font_texture.em_pixels();
-        let (w, h) = target.target.get_dimensions();
-        let text_tf = |px: f32, py: f32| -> [[f32; 4]; 4] {
-            let (x, y) = (px / w as f32 * 2. - 1.,
-                         (py - size as f32 / 2.) / h as f32 * 2. - 1.);
-
-            let scale = 2. * size as f32;
-
-            [[scale / w as f32, 0.0, 0.0, 0.0],
-             [0.0, scale / h as f32, 0.0, 0.0],
-             [0.0,              0.0, 1.0, 0.0],
-             [  x,                y, 0.0, 1.0]]
-        };
-
-        let text = glium_text::TextDisplay::new(&target.renderer.text_system, &target.renderer.font_texture, &line.text);
 
         if let Some(mut pos) = line.cursor {
-            let ch_pos_x = text.get_char_pos_x();
+            let ch_pos_x = &line.renderer.char_pos_x;
             assert!(ch_pos_x.len() > pos as usize);
-            let offset_local = ch_pos_x[pos as usize];
-            let offset_screen = offset_local * size as f32;
+            let offset = ch_pos_x[pos as usize];
 
             self.line_bg.draw(target, (px, py)).unwrap();
-            self.cursor.draw(target, (offset_screen + px, py)).unwrap();
+            self.cursor.draw(target, (offset + px, py)).unwrap();
         }
 
-        glium_text::draw(&text, &target.renderer.text_system, &mut target.target, text_tf(px, py), (0., 0., 0., 1.));
+        line.renderer.draw(target, px, py);
 
         Ok(())
+    }
+
+    pub fn draw(&self, target: &mut Target, lines: &[(f32,&Line)]) {
+        for &(y, line) in lines {
+            self.draw_line(target, &line, (15., y), 0);
+        }
+        // let (w,h) = target.target.get_dimensions();
+        // self.renderer.draw_scrollbar(target, w - 20., h, 0.);
     }
 
     // pub fn draw_scrollbar(&self, target: &mut Target, x: f32, y1: f32, y2: f32, top: f64, height: f64, total: f64)
@@ -164,6 +186,13 @@ impl TextRenderer {
     //     unimplemented!()
     // }
 }
+
+#[derive(Copy, Clone)]
+pub struct Vertex {
+    pub position: [f32; 2],
+    pub color: [f32; 4],
+}
+implement_vertex!(Vertex, position, color);
 
 pub struct Primitive {
     vertex_buffer: glium::VertexBuffer<Vertex>,

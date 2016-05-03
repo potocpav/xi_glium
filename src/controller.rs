@@ -18,16 +18,16 @@ use file_dialog;
 //     state: State,
 // }
 
-pub struct State {
+pub struct State<'a> {
     pub filename: Option<String>,
-    pub text: Text,
+    pub text: Text<'a>,
     pub first_line: u64,
     pub line_count: u64,
     pub scroll_to: (u64, u64),
 }
 
-impl State {
-    pub fn new(filename: Option<String>, renderer: &Renderer) -> State {
+impl<'a> State<'a> {
+    pub fn new(filename: Option<String>, renderer: &'a Renderer) -> State<'a> {
         State {
             filename: filename,
             text: Text::new(&renderer),
@@ -40,7 +40,8 @@ impl State {
     // the 'data' field is specified in
     // https://github.com/google/xi-editor/blob/master/doc/frontend.md#settext
     // The line data itself is updated in fn update_lines
-    pub fn update(&mut self, data: Value) {
+    // renderer is needed, because the new lines are rendered as they come.
+    pub fn update(&mut self, renderer: &'a Renderer, data: Value) {
         println!("{:?}", data);
         if let Some(array) = data.as_array() {
             if let Some("settext") = array[0].as_string() {
@@ -48,7 +49,7 @@ impl State {
                     self.first_line = dict.get("first_line").unwrap().as_u64().unwrap();
                     self.line_count = dict.get("height").unwrap().as_u64().unwrap();
                     self.text.refresh(self.line_count);
-                    self.text.add_lines(dict.get("lines").unwrap(), self.first_line);
+                    self.text.add_lines(&renderer, dict.get("lines").unwrap(), self.first_line);
                     // TODO: is this supposed to be in every message, or not?
                     if let Some(x) = dict.get("scrollto")
                                          .and_then(|x| x.as_array()) {
@@ -177,12 +178,12 @@ pub fn run(core_path: &str, filename: Option<String>, display: GlutinFacade) {
         }
 
         while let Ok(value) = core.rx.try_recv() {
-            state.update(value);
+            state.update(&renderer, value);
         }
 
         let mut target = renderer.draw();
 
-        state.text.render(&mut target).unwrap();
+        state.text.render(&mut target);
 
         // renderer.draw(&display, state.text.get_lines());
 
