@@ -22,7 +22,7 @@ fn main() {
         use glium::DisplayBuild;
         let display = glium::glutin::WindowBuilder::new()
             .with_dimensions(760, 380)
-            .with_title(format!("xi_glium"))
+            .with_title(String::from("xi_glium"))
             .build_glium()
             .unwrap();
         display.get_window().unwrap().set_cursor(glium::glutin::MouseCursor::Text);
