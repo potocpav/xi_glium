@@ -88,15 +88,12 @@ impl Renderer {
                 "
         }).unwrap();
 
-
-        let renderer = Renderer {
+        Renderer {
             display: display,
             program: program,
             text_system: text_system,
             font_texture: font_texture,
-        };
-
-        renderer
+        }
     }
 
     pub fn draw(&self) -> Target {

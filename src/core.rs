@@ -176,7 +176,7 @@ impl Core {
         self.render_lines(0, 10);
     }
 
-    pub fn render_lines(&mut self, start: u64, end: u64) {
+    pub fn render_lines(&mut self, _start: u64, _end: u64) {
         unimplemented!()
         // self.rpc_index += 1;
         // println!("render_lines");
@@ -187,17 +187,17 @@ impl Core {
         //         .insert_array("request", |builder| builder
         //             .push("render_lines")
         //             .push_object(|builder| builder
-        //                 .insert("first_line", start)
-        //                 .insert("last_line", end)
+        //                 .insert("first_line", _start)
+        //                 .insert("last_line", _end)
         //             )
         //         )
         //     ).unwrap();
         // self.write(value);
     }
 
-    pub fn render_lines_sync(&mut self, start: u64, end: u64) -> Value {
+    pub fn render_lines_sync(&mut self, _start: u64, _end: u64) -> Value {
         unimplemented!()
-        // self.render_lines(start, end);
+        // self.render_lines(_start, _end);
         // let value = self.rpc_rx.recv().unwrap();
         // let object = value.as_object().unwrap();
         // assert_eq!(self.rpc_index, object.get("index").unwrap().as_u64().unwrap());
