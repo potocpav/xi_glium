@@ -15,7 +15,7 @@ extern crate clipboard;
 
 fn main() {
     let filename = std::env::args().nth(1);
-    let core_path = std::env::var("xicore").unwrap_or("../xi-editor/rust/target/debug/xicore".into());
+    let core_path = std::env::var("xicore").unwrap_or("../xi-editor/rust/target/debug/xi-core".into());
 
     // I read that GTK on Mac needs to be in the main thread. We must let it have it.
     ::std::thread::spawn(move || {

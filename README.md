@@ -16,10 +16,10 @@ Screenshot:
 * load (`ctrl-o`), save (`ctrl-s`) and save-as (`ctrl-shift-s`) using GTK dialogs,
 * F1 to line-wrap
 
-You must specify a path to the `xicore` executable (build by cargo inside
+You must specify a path to the `xi-core` executable (build by cargo inside
 the `rust` subdirectory of xi-editor). Works with the xi-editor commit ` 7f7b885`,
 but the HEAD is a good bet.
 
 ## Example usage
 
-`xicore=../xi-editor/rust/target/debug/xicore cargo run README.md`
+`xicore=../xi-editor/rust/target/debug/xi-core cargo run README.md`
