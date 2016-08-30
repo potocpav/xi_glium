@@ -23,3 +23,8 @@ but the HEAD is a good bet.
 ## Example usage
 
 `xicore=../xi-editor/rust/target/debug/xi-core cargo run README.md`
+
+
+## License
+
+[MIT License](LICENSE.md)
