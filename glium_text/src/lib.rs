@@ -213,6 +213,9 @@ impl FontTexture {
         })
     }
 
+    /// Return the size of an em-unit for the generated font texture.
+    /// This is needed for a pixel-perfect display: the text geometry is scaled so that
+    /// 1em == 1 unit. We must scale the geometry up by em_pixels to match the screen pixels.
     pub fn em_pixels(&self) -> u32 {
         self.em_pixels
     }

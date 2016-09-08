@@ -17,7 +17,7 @@ Screenshot:
 * F1 to line-wrap
 
 You must specify a path to the `xi-core` executable (build by cargo inside
-the `rust` subdirectory of xi-editor). Works with the xi-editor commit ` 7f7b885`,
+the `rust` subdirectory of xi-editor). Works with the xi-editor commit `2e88632`,
 but the HEAD is a good bet.
 
 ## Example usage

@@ -7,9 +7,9 @@ license = "MIT"
 [dependencies]
 clipboard = "0.1.2"
 glib = "0.1.0"
-glium = "0.14"
-gtk = "0.0.7"
-serde_json = "0.7.2"
+glium = "0.15.0"
+gtk = "0.1.0"
+serde_json = "0.8.1"
 
 [dependencies.glium_text]
 path = "glium_text"

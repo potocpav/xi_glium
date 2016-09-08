@@ -57,12 +57,12 @@ impl<'a> Text<'a> {
     pub fn add_lines(&mut self, renderer: &'a Renderer, value: &Value, first: u64) {
         for (i, line) in value.as_array().unwrap().into_iter().enumerate() {
             let line = line.as_array().unwrap();
-            let text = line[0].as_string().unwrap().to_string();
+            let text = line[0].as_str().unwrap().to_string();
             // annotations
             let mut cursor = None;
             let mut selection = None;
             for annotation in line.iter().skip(1).map(|a| a.as_array().unwrap()) {
-                match annotation[0].as_string().unwrap() {
+                match annotation[0].as_str().unwrap() {
                     "cursor" => {
                         cursor = Some(annotation[1].as_u64().unwrap());
                     },

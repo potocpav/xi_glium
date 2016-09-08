@@ -27,22 +27,22 @@ fn spawn(action: Action) -> mpsc::Receiver<Option<path::PathBuf>> {
                 let fc = gtk::FileChooserDialog::new(
                     Some("Open File"), None::<&gtk::Window>, gtk::FileChooserAction::Open);
                 fc.add_buttons(&[
-                    ("Open", gtk::ResponseType::Ok as i32),
-                    ("Cancel", gtk::ResponseType::Cancel as i32),
+                    ("Open", gtk::ResponseType::Ok.into()),
+                    ("Cancel", gtk::ResponseType::Cancel.into()),
                     ]);
                 fc
             }, Action::Save => {
                 let fc = gtk::FileChooserDialog::new(
                     Some("Save File"), None::<&gtk::Window>, gtk::FileChooserAction::Save);
                 fc.add_buttons(&[
-                    ("Save", gtk::ResponseType::Ok as i32),
-                    ("Cancel", gtk::ResponseType::Cancel as i32),
+                    ("Save", gtk::ResponseType::Ok.into()),
+                    ("Cancel", gtk::ResponseType::Cancel.into()),
                     ]);
                 fc
             }
         };
 
-        if file_chooser.run() == gtk::ResponseType::Ok as i32 {
+        if file_chooser.run() == gtk::ResponseType::Ok.into() {
             let filename = file_chooser.get_filename().unwrap();
             sx.send(Some(filename)).unwrap();
         } else {
