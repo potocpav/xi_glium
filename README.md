@@ -20,6 +20,14 @@ You must specify a path to the `xi-core` executable (build by cargo inside
 the `rust` subdirectory of xi-editor). Works with the xi-editor commit `2e88632`,
 but the HEAD is a good bet.
 
+## Dependencies
+
+On Linux you might need to install the package `xmu` first.
+
+```
+sudo apt-get install libxmu-dev libxi-dev
+```
+
 ## Example usage
 
 `xicore=../xi-editor/rust/target/debug/xi-core cargo run README.md`
